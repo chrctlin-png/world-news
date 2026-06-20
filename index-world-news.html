@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wire Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0B0E14;
+    --panel: #131822;
+    --panel-2: #1A212D;
+    --hairline: #262E3D;
+    --paper: #ECE7DC;
+    --paper-dim: #9AA3B2;
+    --wire: #D9A441;
+    --signal: #5FB489;
+    --alert: #D9594C;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Inter', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 22px 60px; }
+
+  .masthead {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex-wrap: wrap; gap: 14px;
+    border-bottom: 2px solid var(--paper);
+    padding-bottom: 16px; margin-bottom: 0;
+  }
+  .masthead-title {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 700; font-size: 42px; letter-spacing: 0.5px;
+    margin: 0; line-height: 1;
+  }
+  .masthead-title span { color: var(--wire); }
+  .masthead-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--paper-dim); margin-top: 6px;
+  }
+  .masthead-right { text-align: right; }
+  .sync-line {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--paper-dim); margin-bottom: 8px; letter-spacing: 0.5px;
+  }
+  .sync-line b { color: var(--signal); font-weight: 600; }
+  .btn-refresh-all {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.5px;
+    background: var(--wire); color: var(--ink); border: none;
+    padding: 9px 16px; border-radius: 3px; cursor: pointer; font-weight: 600;
+    text-transform: uppercase; transition: opacity 0.15s ease;
+  }
+  .btn-refresh-all:hover { opacity: 0.85; }
+  .refresh-hint {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--paper-dim);
+    margin-top: 6px; max-width: 220px; line-height: 1.4; display: none;
+  }
+  .refresh-hint.show { display: block; }
+
+  .ticker {
+    border-bottom: 1px solid var(--hairline);
+    background: var(--panel);
+    overflow: hidden; white-space: nowrap;
+    margin-bottom: 30px;
+  }
+  .ticker-track {
+    display: inline-block; padding: 9px 0;
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
+    color: var(--paper-dim);
+    animation: scroll-left 90s linear infinite;
+  }
+  .ticker-track .seg { color: var(--wire); font-weight: 600; }
+  .ticker-track .sep { color: var(--hairline); padding: 0 14px; }
+  @keyframes scroll-left {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ticker-track { animation: none; }
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--paper-dim);
+    margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--hairline);
+  }
+  .grid-main {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 16px;
+  }
+  @media (max-width: 640px) {
+    .masthead-right { text-align: left; }
+  }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--hairline);
+    border-radius: 4px; padding: 16px 18px 14px; display: flex; flex-direction: column;
+  }
+  .card.highlight { border-left: 3px solid var(--wire); }
+  .card-head {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .card-eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    letter-spacing: 1.3px; color: var(--wire); font-weight: 600;
+  }
+  .card-label {
+    font-family: 'Source Serif 4', Georgia, serif; font-size: 19px; font-weight: 600;
+    margin-top: 3px; color: var(--paper);
+  }
+
+  .card-body { flex: 1; min-height: 40px; }
+  .item { padding: 9px 0; border-top: 1px solid var(--hairline); }
+  .item:first-child { border-top: none; padding-top: 2px; }
+  .item-title { font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--paper); }
+  .card.highlight .item:first-child .item-title { font-size: 15.5px; }
+  .item-summary { font-size: 12.5px; color: var(--paper-dim); margin-top: 3px; line-height: 1.45; }
+  .item-source {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--signal);
+    margin-top: 4px; letter-spacing: 0.3px;
+  }
+
+  .empty-state { font-size: 12.5px; color: var(--paper-dim); font-style: italic; padding: 6px 0; }
+
+  .footer {
+    margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--hairline);
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--paper-dim);
+    text-align: center; letter-spacing: 0.3px; line-height: 1.6;
+  }
+
+  .diag-banner {
+    display: none; background: #2A1313; border: 1px solid var(--alert);
+    color: #F2B3AC; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+    padding: 10px 14px; border-radius: 4px; margin-bottom: 18px; line-height: 1.5;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .diag-banner.show { display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="diag-banner" id="diagBanner"></div>
+
+  <div class="masthead">
+    <div>
+      <h1 class="masthead-title">World <span>News</span></h1>
+      <div class="masthead-sub" id="dateLine">Personal intelligence briefing</div>
+    </div>
+    <div class="masthead-right">
+      <div class="sync-line">Briefing compiled: <b>Sat, Jun 20, 2026</b></div>
+      <button class="btn-refresh-all" id="refreshAllBtn">Ask Claude to refresh</button>
+      <div class="refresh-hint" id="refreshHint">Type "refresh the wire desk" in chat — Claude will re-search all 16 topics and rebuild this page with new data.</div>
+    </div>
+  </div>
+
+  <div class="ticker">
+    <div class="ticker-track" id="tickerTrack"></div>
+  </div>
+
+  <div class="section-label">Briefing</div>
+  <div class="grid-main" id="gridMain"></div>
+
+  <div class="footer">News compiled by Claude using live web search, baked into this page at generation time &middot; this page does not auto-refresh &middot; ask in chat for an update &middot; not investment or financial advice</div>
+
+</div>
+
+<script>
+function showDiag(msg) {
+  const el = document.getElementById('diagBanner');
+  el.textContent = 'Dashboard error: ' + msg;
+  el.classList.add('show');
+}
+window.addEventListener('error', (e) => {
+  showDiag((e.message || 'script error') + (e.filename ? ' (line ' + e.lineno + ')' : ''));
+});
+window.addEventListener('unhandledrejection', (e) => {
+  showDiag('unhandled: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
+});
+
+const TOPICS = [
+  { id: 'us', code: 'US — NATIONAL', label: 'United States' },
+  { id: 'tw', code: 'TW — TAIPEI', label: 'Taiwan' },
+  { id: 'cn', code: 'CN — BEIJING', label: 'China' },
+  { id: 'mx', code: 'MX — MEXICO CITY', label: 'Mexico' },
+  { id: 'in', code: 'IN — NEW DELHI', label: 'India' },
+  { id: 'ca', code: 'CA — OTTAWA', label: 'Canada' },
+  { id: 'cl', code: 'CL — SANTIAGO', label: 'Chile' },
+  { id: 'wmt', code: 'WMT — RETAILER', label: 'Walmart' },
+  { id: 'ai', code: 'AI — INDUSTRY', label: 'Artificial Intelligence' },
+  { id: 'agent', code: 'AGENT — AI', label: 'AI Agents' },
+  { id: 'tech', code: 'TECH — INDUSTRY', label: 'Technology' },
+  { id: 'retail', code: 'RTL — SECTOR', label: 'Retail Sector' },
+  { id: 'wc', code: 'WC — WORLD CUP', label: 'World Cup', highlight: true },
+  { id: 'tsla', code: 'TSLA — HIGHLIGHT', label: 'Tesla', highlight: true },
+  { id: 'spacex', code: 'SPACE — HIGHLIGHT', label: 'SpaceX', highlight: true },
+  { id: 'geo', code: 'GEO — GLOBAL', label: 'Geopolitics' },
+  { id: 'uk', code: 'UK — LONDON', label: 'United Kingdom' },
+  { id: 'eu', code: 'EU — BRUSSELS', label: 'Europe' },
+  { id: 'anthropic', code: 'ANTH — COMPANY', label: 'Anthropic' },
+  { id: 'openai', code: 'OAI — COMPANY', label: 'OpenAI' },
+  { id: 'amazon', code: 'AMZN — COMPANY', label: 'Amazon' },
+  { id: 'nvidia', code: 'NVDA — COMPANY', label: 'NVIDIA' },
+  { id: 'tsmc', code: 'TSMC — COMPANY', label: 'TSMC' },
+  { id: 'google', code: 'GOOG — COMPANY', label: 'Google' },
+  { id: 'movie', code: 'FILM — ENTERTAINMENT', label: 'Movies' },
+  { id: 'sports', code: 'SPORT — GENERAL', label: 'Sports' },
+  { id: 'book', code: 'BOOKS — PUBLISHING', label: 'Books' },
+  { id: 'music', code: 'MUSIC — INDUSTRY', label: 'Music' },
+];
+
+const DATA = {
+  us: [
+    { title: 'US and Iran sign preliminary deal to end war', summary: 'Naval blockade lifted, Strait of Hormuz reopening, 60-day window for a final agreement.', source: 'NPR / CBS News' },
+    { title: 'Israel keeps striking Lebanon despite the deal', summary: 'VP Vance postponed his Switzerland follow-up trip as Lebanese officials report casualties.', source: 'CNN / NPR' },
+    { title: "Trump's approval rating hits record low", summary: 'A new NPR poll shows the weakest approval rating of his term.', source: 'NPR' },
+  ],
+  tw: [
+    { title: 'Coast guard expels Chinese research ship', summary: 'Taiwan pushed a Chinese vessel out of restricted waters and rebuked a China-Myanmar sovereignty statement.', source: 'Taiwan News' },
+    { title: 'AI chip demand lifts test-equipment makers', summary: 'Firms like Winway and MPI post record profits on surging chip-testing demand.', source: 'Taiwan News' },
+    { title: 'President Lai meets US House members', summary: 'Talks focused on deepening defense and technology cooperation.', source: 'Taipei Times' },
+  ],
+  cn: [
+    { title: 'White House accuses China of copying US AI models', summary: 'Officials describe an "industrial-scale" campaign to replicate American AI systems.', source: 'CNN' },
+    { title: 'May retail sales post first drop in 3 years', summary: 'Fresh data signals a weakening Chinese economy.', source: 'CNBC' },
+    { title: 'Regulators warn against AI-trading hype', summary: 'Beijing cautions investors against speculating on AI-linked stocks.', source: 'CNBC' },
+  ],
+  mx: [
+    { title: 'World Cup hosting drives a security push', summary: 'Mexico balances tournament excitement with cartel-violence concerns as games continue.', source: 'CNN / NBC News' },
+    { title: 'Economy shows fragile, modest growth', summary: 'Analysts flag a record budget deficit despite Sheinbaum\u2019s "Plan M\u00e9xico" investment drive.', source: 'AS/COA' },
+    { title: 'Co-hosts open World Cup with two wins', summary: 'Mexico beat South Africa 2-0 and South Korea 1-0 to start the tournament strongly.', source: 'Yahoo Sports' },
+  ],
+  in: [
+    { title: 'Modi presses Trump on Strait of Hormuz', summary: 'At the G7 summit, Modi urged the US to protect seafarer safety and maritime freedom near Iran.', source: 'The Hans India' },
+    { title: 'Government disburses farmer and jobs incentives', summary: 'Modi released over \u20b918,880 crore to farmers and \u20b92,400 crore in youth employment incentives.', source: 'PIB' },
+    { title: 'Modi to tour West Bengal and Odisha', summary: 'A two-day domestic visit is planned for June 20-21.', source: 'PM India' },
+  ],
+  ca: [
+    { title: 'Carney skips formal Trump meeting at G7', summary: 'Officials call it routine, not a snub, as the USMCA trade pact nears a July 1 renewal deadline.', source: 'AP / PBS NewsHour' },
+    { title: 'Trade talks continue amid tariff uncertainty', summary: 'Canadian negotiators report progress even as Trump signals he may not renew the pact.', source: 'ABC News' },
+    { title: "Carney calls the US-Iran deal a 'game-changer'", summary: 'He said it could help shift dynamics in the Ukraine and Lebanon conflicts too.', source: 'Toronto Star' },
+  ],
+  cl: [
+    { title: 'Kast fast-tracks copper-mine permitting', summary: "Chile's new president is speeding approvals to boost output amid a tight global copper market.", source: 'Bloomberg' },
+    { title: '13 copper projects worth $14.8B advance', summary: 'Codelco, BHP and others aim to add roughly 500,000 tonnes of annual capacity in 2026.', source: 'MINING.COM' },
+    { title: 'IPSA stock index trades near record highs', summary: "Markets reward Kast's tax-cut agenda, though a tied Senate complicates delivery.", source: 'Rio Times' },
+  ],
+  wmt: [
+    { title: "Sam's Club faces China food-safety scrutiny", summary: "Walmart's warehouse unit is reforming supply chains after safety concerns surfaced.", source: 'Yahoo Finance' },
+    { title: 'Walmart+ adds new travel perks', summary: 'Members can now get up to 10% back on vacation bookings.', source: 'Yahoo Finance' },
+  ],
+  ai: [
+    { title: 'Meta strikes AI computing deal with Crusoe', summary: "A new data-center partnership expands Meta's AI compute capacity.", source: 'Bloomberg' },
+    { title: 'OpenAI ships two health-research tools', summary: "New releases include a rare-disease diagnosis aid and a near-autonomous 'AI chemist.'", source: 'OpenAI' },
+    { title: "Hinton warns AI labs risk a 'bubble explosion'", summary: 'The Turing Award winner cautioned that overheated AI investment could end badly.', source: 'CNBC' },
+  ],
+  agent: [
+    { title: "OpenAI's Codex usage jumps 400%", summary: 'The coding agent now serves more than 5 million weekly users.', source: "Let's Data Science" },
+    { title: 'Kalshi built an internal trading agent on Claude', summary: 'Nicknamed Harrison, it stress-tests contract wording and handles market analysis.', source: 'Bloomberg / Benzinga' },
+    { title: "Most firms still aren't agent-ready", summary: 'A new readiness index finds just 15% of companies fully prepared despite heavy AI agent spending.', source: 'Agentic.ai' },
+  ],
+  tech: [
+    { title: 'Apple rolls out a major Siri overhaul', summary: 'The redesign puts Siri in more direct competition with modern AI assistants.', source: 'CNN' },
+    { title: 'Intel jumps 10% on Apple chip-partnership report', summary: 'Trump said Intel will partner with Apple on US-made chips.', source: 'CNBC' },
+    { title: "Google's Gemini co-lead departs for OpenAI", summary: "Noam Shazeer's exit marks a notable move in the AI talent race.", source: 'CNBC' },
+  ],
+  retail: [
+    { title: 'US retail sales rise a strong 0.9% in May', summary: 'Spending beat forecasts even as gas-driven inflation hit a three-year high.', source: 'Washington Times' },
+    { title: 'Economists flag a fading tax-refund boost', summary: "Analysts warn this year's larger refunds gave spending a temporary lift that may not last.", source: 'Marketplace' },
+  ],
+  wc: [
+    { title: 'Jonathan David ties Messi atop scoring race', summary: "David's hat-trick moved him level with Messi as the tournament nears 90 goals in 27 games.", source: 'FourFourTwo' },
+    { title: 'Canada routs Qatar 6-0', summary: "The co-hosts delivered the tournament's biggest blowout so far in Group B.", source: 'CP24' },
+    { title: 'Group stage hits its final matchdays', summary: "Netherlands-Sweden and Germany-Ivory Coast headline Saturday's slate.", source: 'Flashscore' },
+  ],
+  tsla: [
+    { title: "Musk's Tesla stake jumps to 19.9%", summary: 'He exercised stock options worth $110B, deepening his position in the company.', source: 'CNBC / TipRanks' },
+    { title: 'Sweden opposes EU-wide Tesla FSD approval', summary: 'Regulators cite speeding-risk concerns with the supervised self-driving software.', source: 'Reuters' },
+  ],
+  spacex: [
+    { title: 'SpaceX launches NRO spy-satellite mission', summary: "The NROL-179 Falcon 9 flight from Vandenberg was the company's 71st launch this year.", source: 'Space.com' },
+    { title: 'Stock slips for a second day post-IPO', summary: 'Shares cooled after debuting at a $2.1T valuation the week before.', source: 'CNBC' },
+  ],
+  geo: [
+    { title: 'Fragile US-Iran ceasefire dominates headlines', summary: "Naval blockade lifted, Hormuz reopening, but VP Vance's follow-up Switzerland trip was abruptly postponed.", source: 'NPR / CNN' },
+    { title: 'Israel keeps striking Lebanon despite the deal', summary: 'Lebanese officials report casualties even as the agreement promises an end to hostilities there.', source: 'NPR' },
+    { title: "Ballot scandal tests South Korea's President Lee", summary: 'The controversy is straining his political and foreign-policy standing.', source: 'Stratfor' },
+  ],
+  uk: [
+    { title: 'Rolls-Royce lands major SMR export deal', summary: 'Sweden tapped the firm to build small modular reactors, a breakthrough win for UK nuclear exports.', source: 'No2NuclearPower' },
+    { title: 'Starmer faces renewed Labour leadership pressure', summary: 'Some backbench MPs are pushing back after disappointing local election results.', source: 'Wikipedia / Bloomberg' },
+    { title: "King's Birthday Parade marks Trooping the Colour", summary: 'The Red Arrows flew over central London as part of the weekend celebrations.', source: 'LBC' },
+  ],
+  eu: [
+    { title: 'Russian strikes damage historic Kyiv cathedral', summary: 'An 11th-century UNESCO-listed structure was hit in missile and drone strikes that killed at least five.', source: 'LBC' },
+    { title: 'G7 summit in Évian wraps with Ukraine, Mideast focus', summary: 'Demonstrations near the summit turned violent in nearby Geneva.', source: 'Euronews' },
+    { title: 'Ukraine and Moldova open first phase of EU talks', summary: 'Both countries begin formal accession negotiations with the bloc.', source: 'Euronews' },
+  ],
+  anthropic: [
+    { title: 'TCS and Anthropic partner on regulated industries', summary: 'The partnership aims to bring Claude into banking, insurance and other regulated sectors.', source: 'Anthropic Newsroom' },
+    { title: 'Claude Code gets shareable live Artifacts', summary: 'A new beta feature lets engineering teams turn coding sessions into pages teammates can watch update in real time.', source: 'DevOps.com' },
+    { title: 'Mythos and Fable access remains suspended', summary: 'The frontier-tier models stay paused following a US export-control directive.', source: 'Anthropic' },
+  ],
+  openai: [
+    { title: 'OpenAI hires Noam Shazeer and Dean Ball ahead of IPO', summary: "The Transformer co-inventor and a former Trump AI policy adviser both joined in the same week.", source: 'TechCrunch / Axios' },
+    { title: 'ChatGPT Enterprise gets new spend controls', summary: 'Fresh usage analytics aim to give business customers more visibility into AI costs.', source: 'TradingView News' },
+    { title: 'OpenAI and Dell partner on on-premises Codex', summary: 'The deal brings the coding agent to hybrid and on-premises enterprise environments.', source: 'OpenAI Newsroom' },
+  ],
+  amazon: [
+    { title: "SpaceX overtakes Amazon's market capitalization", summary: "Amazon slipped from the top five most valuable companies as SpaceX's post-IPO rally continued.", source: 'Fox Business' },
+    { title: 'Amazon Leo constellation tops 350 satellites', summary: 'A record Ariane 6 launch pushed the broadband project past the milestone; a ULA Atlas V flight is next.', source: 'About Amazon' },
+    { title: 'Alexa+ expands to Brazil', summary: "Amazon's next-generation AI assistant continues its international rollout.", source: 'About Amazon' },
+  ],
+  nvidia: [
+    { title: 'Nvidia taps the debt market for the first time since 2021', summary: 'The chipmaker is selling at least $20-25B in bonds even as AI-driven revenue keeps surging.', source: 'Stockanalysis.com' },
+    { title: 'Senator presses Nvidia on China chip-export policing', summary: 'The company owes a written answer on how it monitors where its chips end up.', source: 'Stockanalysis.com' },
+    { title: 'Shares climb on ceasefire optimism and Fed signals', summary: 'NVDA closed up nearly 3% as markets weighed the Iran deal against interest-rate uncertainty.', source: 'CNBC' },
+  ],
+  tsmc: [
+    { title: 'Chairman says AI demand is straining the supply chain', summary: 'C.C. Wei flagged bottlenecks in power, capacity and equipment as AI orders accelerate.', source: 'DIGITIMES' },
+    { title: "TSMC central to Nvidia's $500B US AI build-out", summary: "Blackwell chip production at TSMC's Phoenix fabs ties the foundry to US onshoring efforts.", source: 'TipRanks' },
+    { title: 'Stock up over 200% this year amid AI orders', summary: 'TSMC is reportedly considering price increases as costs rise alongside demand.', source: 'CNBC / Yahoo Finance' },
+  ],
+  google: [
+    { title: 'Google sues Chinese network over Gemini-aided scam texts', summary: 'The suit alleges the group used Gemini to help send over 2 million fraudulent messages to US users.', source: 'Claims Journal' },
+    { title: 'Gemini app passes 900 million users', summary: 'Usage has more than doubled in a year as Alphabet nears a $5 trillion valuation.', source: 'CoinCentral' },
+    { title: 'Gemini co-lead Noam Shazeer departs for OpenAI', summary: 'The high-profile exit comes as Google pushes Gemini deeper into Android, Chrome and Search.', source: 'TechCrunch / CNBC' },
+  ],
+  movie: [
+    { title: 'Toy Story 5 saddles up for a record Pixar opening', summary: 'Strong preview screenings have it on pace for one of the franchise\u2019s biggest debuts.', source: 'ScreenRant' },
+    { title: 'Spider-Man: Brand New Day posts best presales in 5 years', summary: 'The Tom Holland sequel is drawing the strongest advance ticket sales of any film in years.', source: 'Deadline' },
+    { title: 'Super Mario Galaxy Movie crosses $1B worldwide', summary: 'It becomes the first 2026 release to hit the milestone.', source: 'The Numbers' },
+  ],
+  sports: [
+    { title: 'Carolina Hurricanes celebrate Stanley Cup with a parade', summary: 'Fans packed downtown Raleigh to celebrate the franchise\u2019s championship win.', source: 'U.S. News' },
+    { title: 'Aaron Rai wins the PGA Championship', summary: "The major victory caps a breakout stretch amid simmering PGA-LIV tensions.", source: 'CNN' },
+    { title: "Knicks' deep playoff run has New York buzzing", summary: 'A championship push built around Jalen Brunson has reignited title hopes.', source: 'CNN' },
+  ],
+  book: [
+    { title: "HarperCollins audiobooks land on ElevenLabs' platform", summary: 'The AI narration app now carries titles in 16 languages, challenging established audiobook services.', source: 'Publishers Weekly' },
+    { title: "Oprah picks Tayari Jones's 'Kin' for her book club", summary: "It's only the tenth time Oprah has chosen the same author twice.", source: 'CBS News' },
+    { title: "'Taiwan Travelogue' wins the International Booker Prize", summary: 'The win highlights growing global attention on translated fiction.', source: 'Publishers Weekly' },
+  ],
+  music: [
+    { title: "Ariana Grande scores her 10th Hot 100 No. 1", summary: '"Hate That I Made You Love Me" debuts atop the chart ahead of her album Petal.', source: 'NPR Music' },
+    { title: 'Musicians\u2019 union sues UMG and WMG over AI training', summary: 'The American Federation of Musicians alleges labels fed members\u2019 work into AI systems without compensation.', source: 'Hollywood Reporter' },
+    { title: 'Glastonbury 2026 builds toward the weekend', summary: 'Dua Lipa and Aurora headline as festival anticipation grows.', source: 'Music Week' },
+  ],
+};
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function buildCardHTML(topic) {
+  const items = DATA[topic.id] || [];
+  const body = items.length
+    ? items.map(it => `
+        <div class="item">
+          <div class="item-title">${escapeHtml(it.title)}</div>
+          <div class="item-summary">${escapeHtml(it.summary)}</div>
+          <div class="item-source">${escapeHtml(it.source)}</div>
+        </div>`).join('')
+    : `<div class="empty-state">No items compiled for this section.</div>`;
+  return `
+    <div class="card${topic.highlight ? ' highlight' : ''}" id="card-${topic.id}">
+      <div class="card-head">
+        <div>
+          <div class="card-eyebrow">${topic.code}</div>
+          <div class="card-label">${topic.label}</div>
+        </div>
+      </div>
+      <div class="card-body">${body}</div>
+    </div>`;
+}
+
+function renderShell() {
+  const main = document.getElementById('gridMain');
+  TOPICS.forEach(t => {
+    main.insertAdjacentHTML('beforeend', buildCardHTML(t));
+  });
+  document.getElementById('dateLine').textContent = 'Personal intelligence briefing';
+
+  const refreshBtn = document.getElementById('refreshAllBtn');
+  const hint = document.getElementById('refreshHint');
+  refreshBtn.addEventListener('click', () => {
+    if (typeof sendPrompt === 'function') {
+      sendPrompt('Refresh the wire desk with the latest news for all 16 topics');
+    } else {
+      hint.classList.add('show');
+    }
+  });
+}
+
+function renderTicker() {
+  const segs = TOPICS
+    .filter(t => DATA[t.id] && DATA[t.id].length)
+    .map(t => `<span class="seg">${escapeHtml(t.label.toUpperCase())}</span> ${escapeHtml(DATA[t.id][0].title)}`);
+  const line = segs.join('<span class="sep">//</span>');
+  document.getElementById('tickerTrack').innerHTML = line + '<span class="sep">//</span>' + line;
+}
+
+try {
+  renderShell();
+  renderTicker();
+} catch (e) {
+  showDiag('failed to render dashboard — ' + e.message);
+}
+</script>
+</body>
+</html>
